@@ -5,13 +5,13 @@ resource "tls_private_key" "ssh_key" {
     rsa_bits  = 4096
 }
 
-# 2. Registrar la clave pública en Azure como gestionada
-resource "azurerm_ssh_public_key" "ssh_key" {
-    name                = "ssh-key-casopractico2"
-    resource_group_name = var.resource_group_name
-    location            = var.location
-    public_key          = tls_private_key.ssh_key.public_key_openssh
-} 
+## 2. Registrar la clave pública en Azure como gestionada
+# resource "azurerm_ssh_public_key" "ssh_key" {
+#     name                = "ssh-key-casopractico2"
+#     resource_group_name = var.resource_group_name
+#     location            = var.location
+#     public_key          = tls_private_key.ssh_key.public_key_openssh
+# } 
 
 # 3. Crear la máquina virtual usando la clave gestionada
 resource "azurerm_linux_virtual_machine" "vm" {
