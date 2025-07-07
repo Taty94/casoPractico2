@@ -15,3 +15,9 @@ variable "resource_group_name" {
 variable "location" {
   default = "East US"
 }
+
+variable "vm_admin_username" {
+  description = "The admin username for the VM"
+  type        = string
+  default     = "azureuser"
+}
