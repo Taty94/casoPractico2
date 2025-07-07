@@ -7,7 +7,7 @@ resource "azurerm_virtual_network" "vnet" {
     tags = {
       environment = "casopractico2"
     }
-}
+}  
 
 resource "azurerm_subnet" "subnet" {
     name                 = "subnet-casopractico2"
@@ -22,7 +22,7 @@ resource "azurerm_network_security_group" "nsg" {
   resource_group_name = var.resource_group_name
 
   tags = {
-    environment = "Production"
+    environment = "casopractico2"
   }
 }
 
@@ -52,4 +52,38 @@ resource "azurerm_network_security_rule" "outbound_rule" {
   destination_address_prefix  = "*"
   resource_group_name         = var.resource_group_name
   network_security_group_name = azurerm_network_security_group.nsg.name
+}
+
+resource "azurerm_public_ip" "ip" {
+  name                = "ip-casopractico2"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  allocation_method   = "Dynamic"
+
+  tags = {
+    environment = "casopractico2"
+  }
+}
+
+resource "azurerm_network_interface" "nic" {
+  name                = "nic-casopractico2"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.ip.id
+  }
+
+  tags = {
+    environment = "casopractico2"
+  }
+}
+  
+resource "azurerm_network_interface_security_group_association" "nic_nsg" {
+  network_interface_id      = azurerm_network_interface.nic.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
+  
 }
