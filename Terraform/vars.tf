@@ -21,3 +21,6 @@ variable "vm_admin_username" {
   type        = string
   default     = "azureuser"
 }
+variable "dns_prefix" {
+  default = "casopractico2aks"
+}
