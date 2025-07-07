@@ -26,14 +26,28 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
+resource "azurerm_network_security_rule" "ssh" {
+    name                        = "SshRule"
+    priority                    = 1001
+    direction                   = "Inbound"
+    access                      = "Allow"
+    protocol                    = "Tcp"
+    source_port_range           = "*"
+    destination_port_range      = "22"
+    source_address_prefix       = "*"
+    destination_address_prefix  = "*"
+    resource_group_name = var.resource_group_name
+    network_security_group_name = azurerm_network_security_group.nsg.name
+}
+
 resource "azurerm_network_security_rule" "inbound_rule" {
   name                        = "InRule"
-  priority                    = 100
+  priority                    = 1002
   direction                   = "Inbound"
   access                      = "Allow"
   protocol                    = "Tcp"
   source_port_range           = "*"
-  destination_port_range      = "*"
+  destination_port_range      = "80"
   source_address_prefix       = "*"
   destination_address_prefix  = "*"
   resource_group_name         = var.resource_group_name
@@ -41,7 +55,7 @@ resource "azurerm_network_security_rule" "inbound_rule" {
 }
 
 resource "azurerm_network_security_rule" "outbound_rule" {
-  name                        = "OutRule"
+  name                        = "AllowAllOutbound"
   priority                    = 100
   direction                   = "Outbound"
   access                      = "Allow"
