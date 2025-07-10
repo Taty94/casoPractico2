@@ -3,18 +3,20 @@ resource "azurerm_kubernetes_cluster" "aks" {
     location            = var.location
     resource_group_name = var.resource_group_name
     dns_prefix          = var.dns_prefix
-    sku_tier            = "Paid"
+    sku_tier            = "Standard"
 
     default_node_pool {
         name       = "default"
         node_count = 1
-        vm_size    = "Standard_D2_v2"
+        vm_size    = "Standard_D2_v3"
     }
 
     identity {
         type = "SystemAssigned"
     }
     role_based_access_control_enabled = true
+
+    depends_on = [azurerm_resource_group.rg]
 
     tags = {
         environment = "casopractico2"
