@@ -13,7 +13,7 @@ variable "resource_group_name" {
 }
 
 variable "location" {
-  default = "East US"
+  default = "West Europe"
 }
 
 variable "vm_admin_username" {

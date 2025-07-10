@@ -74,6 +74,8 @@ resource "azurerm_public_ip" "ip" {
   location            = var.location
   allocation_method   = "Dynamic"
 
+  depends_on = [azurerm_resource_group.rg]
+  
   tags = {
     environment = "casopractico2"
   }
@@ -99,5 +101,9 @@ resource "azurerm_network_interface" "nic" {
 resource "azurerm_network_interface_security_group_association" "nic_nsg" {
   network_interface_id      = azurerm_network_interface.nic.id
   network_security_group_id = azurerm_network_security_group.nsg.id
-  
+
+  depends_on = [
+    azurerm_network_interface.nic,
+    azurerm_network_security_group.nsg
+  ]
 }
