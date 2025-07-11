@@ -4,6 +4,8 @@ resource "azurerm_virtual_network" "vnet" {
     resource_group_name = var.resource_group_name
     address_space       = ["10.0.0.0/16"]
 
+    depends_on = [ azurerm_resource_group.rg ]
+
     tags = {
       environment = "casopractico2"
     }
@@ -20,6 +22,8 @@ resource "azurerm_network_security_group" "nsg" {
   name                = "nsg-casopractico2"
   location            = var.location
   resource_group_name = var.resource_group_name
+
+  depends_on = [azurerm_resource_group.rg]
 
   tags = {
     environment = "casopractico2"
@@ -72,7 +76,10 @@ resource "azurerm_public_ip" "ip" {
   name                = "ip-casopractico2"
   resource_group_name = var.resource_group_name
   location            = var.location
-  allocation_method   = "Dynamic"
+  allocation_method   = "Static"
+  sku                 = "Standard"
+
+  depends_on = [azurerm_resource_group.rg]
 
   tags = {
     environment = "casopractico2"
