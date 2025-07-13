@@ -8,6 +8,18 @@ output "acr_login_server" {
   value       = azurerm_container_registry.acr.login_server
 }
 
+output "acr_admin_username" {
+  description = "Username for the Azure Container Registry admin user."
+  value       = azurerm_container_registry.acr.admin_username
+  sensitive   = true # Marca este output como sensible
+}
+
+output "acr_admin_password" {
+  description = "Password for the Azure Container Registry admin user."
+  value       = azurerm_container_registry.acr.admin_password
+  sensitive   = true # ¡Marca este output como sensible!
+}
+
 output "aks_cluster_name" {
   description = "Nombre del clúster AKS"
   value       = azurerm_kubernetes_cluster.aks.name
