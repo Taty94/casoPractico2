@@ -53,9 +53,11 @@
             labels:
               app: redis
           spec:
+            imagePullSecrets:
+            - name: acr-secret  # Referencia al secret para pull de imágenes
             containers:
             - name: redis
-              image: "{{ acr_login_server }}/redis:6.0.8"
+              image: "{{ acr_login_server }}/redis:alpine"
               resources:
                 requests:
                   cpu: 100m

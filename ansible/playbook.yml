@@ -8,20 +8,20 @@
       include_role:
         name: acr
 
-- name: Setup Webserver
-  hosts: vm
-  vars_files:
-    - secrets.yml
-  tasks:
-    - name: Configure VM with Podman and deploy web server
-      include_role:
-        name: vm
+# - name: Setup Webserver
+#   hosts: vm
+#   vars_files:
+#     - secrets.yml
+#   tasks:
+#     - name: Configure VM with Podman and deploy web server
+#       include_role:
+#         name: vm
 
-- name: Setup AKS
-  hosts: localhost
-  vars_files:
-    - secrets.yml
-  tasks:
-    - name: Deploy app to AKS
-      include_role:
-        name: aks
+# - name: Setup AKS
+#   hosts: localhost
+#   vars_files:
+#     - secrets.yml
+#   tasks:
+#     - name: Deploy app to AKS
+#       include_role:
+#         name: aks
