@@ -1,0 +1,89 @@
+---
+# Rol AKS - Despliegue en Kubernetes
+- name: Create namespace
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ app_namespace }}"
+
+- name: Create secret for ACR
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: acr-secret
+        namespace: "{{ app_namespace }}"
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: "{{ acr_auth | b64encode }}"
+
+- name: Create PersistentVolumeClaim
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: redis-data
+        namespace: "{{ app_namespace }}"
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+
+- name: Deploy Redis backend
+  k8s:
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: redis
+        namespace: "{{ app_namespace }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: redis
+        template:
+          metadata:
+            labels:
+              app: redis
+          spec:
+            containers:
+            - name: redis
+              image: "{{ acr_login_server }}/redis:6.0.8"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 250m
+                  memory: 256Mi
+              ports:
+                - containerPort: 6379
+              volumeMounts:
+                - name: redis-storage
+                  mountPath: /data
+            volumes:
+              - name: redis-storage
+                persistentVolumeClaim:
+                  claimName: redis-data
+
+- name: Create Redis Service
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: redis
+        namespace: "{{ app_namespace }}"
+      spec:
+        selector:
+          app: redis
+        ports:
+          - port: 6379
+            targetPort: 6379

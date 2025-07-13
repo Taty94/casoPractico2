@@ -1,0 +1,27 @@
+---
+# Rol ACR - Gestión de imágenes de contenedores
+- name: Login to Azure Container Registry
+  containers.podman.podman_login:
+    username: "{{ acr_username }}"
+    password: "{{ acr_password }}"
+    registry: "{{ acr_login_server }}"
+
+- name: Process container images
+  loop: "{{ container_images }}"
+  block:
+    - name: Pull image from Docker Hub
+      containers.podman.podman_image:
+        name: "{{ item.source }}"
+        state: present
+
+    - name: Tag image for ACR
+      containers.podman.podman_tag:
+        image: "{{ item.source }}"
+        target: "{{ acr_login_server }}/{{ item.target }}"
+
+    - name: Push image to ACR
+      containers.podman.podman_image:
+        name: "{{ acr_login_server }}/{{ item.target }}"
+        push: yes
+        username: "{{ acr_username }}"
+        password: "{{ acr_password }}"

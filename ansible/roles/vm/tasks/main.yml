@@ -1,0 +1,38 @@
+---
+# Rol VM - Configuración de la máquina virtual
+- name: Update apt cache
+  apt:
+    update_cache: yes
+  become: yes
+
+- name: Install required packages
+  apt:
+    name: 
+      - podman
+      - python3-pip
+    state: present
+  become: yes
+
+- name: Login to ACR from VM
+  containers.podman.podman_login:
+    username: "{{ acr_username }}"
+    password: "{{ acr_password }}"
+    registry: "{{ acr_login_server }}"
+
+- name: Create volume directory
+  file:
+    path: /data/webserver
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Run nginx container
+  containers.podman.podman_container:
+    name: webserver
+    image: "{{ acr_login_server }}/nginx:latest"
+    state: started
+    ports:
+      - "80:80"
+    volumes:
+      - /data/webserver:/usr/share/nginx/html
+    restart_policy: always

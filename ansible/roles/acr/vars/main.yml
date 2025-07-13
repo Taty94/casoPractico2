@@ -1,0 +1,14 @@
+---
+# Lista de imágenes a gestionar en ACR
+container_images:
+  - name: "nginx"
+    source: "nginx:latest"
+    target: "nginx:latest"
+  
+  - name: "redis"
+    source: "redis:alpine"
+    target: "redis:alpine"
+  
+  - name: "azure-vote-front"
+    source: "suhuruli/azure-vote-front:latest"
+    target: "azure-vote-front:latest"
