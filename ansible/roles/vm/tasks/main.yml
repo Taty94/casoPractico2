@@ -1,4 +1,11 @@
 ---
+# roles/vm/tasks/main.yml
+- import_tasks: setup.yml
+- import_tasks: auth.yml
+- import_tasks: webcontent.yml
+- import_tasks: container.yml
+
+
 # Rol VM - Configuración de la máquina virtual
 - name: Update apt cache
   apt:
@@ -10,6 +17,7 @@
     name: 
       - podman
       - python3-pip
+      - apache2-utils
     state: present
   become: yes
 
@@ -18,13 +26,27 @@
     username: "{{ acr_username }}"
     password: "{{ acr_password }}"
     registry: "{{ acr_login_server }}"
+  no_log: true # Evitar que las credenciales de ACR aparezcan en los logs de Ansible
 
 - name: Create volume directory
   file:
-    path: /data/webserver
+    path: "{{ web_content_dir }}"
     state: directory
     mode: '0755'
   become: yes
+
+- name: Create htpasswd file
+  community.general.htpasswd:
+    path: /data/webserver/.htpasswd
+    name: "{{ htpasswd_user }}"
+    password: "{{ htpasswd_pass }}"
+    crypt_scheme: md5
+
+- name: Create a sample index.html
+  become: yes
+  ansible.builtin.copy:
+    dest: /data/webserver/index.html
+    content: "<h1>¡Hola desde Podman + Nginx!</h1>"
 
 - name: Run nginx container
   containers.podman.podman_container:
@@ -32,7 +54,7 @@
     image: "{{ acr_login_server }}/nginx:latest"
     state: started
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - /data/webserver:/usr/share/nginx/html
     restart_policy: always

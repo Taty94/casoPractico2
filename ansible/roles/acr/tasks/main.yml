@@ -6,22 +6,22 @@
     password: "{{ acr_password }}"
     registry: "{{ acr_login_server }}"
 
-- name: Process container images
+- name: Pull images from Docker Hub
+  containers.podman.podman_image:
+    name: "{{ item.source }}"
+    state: present
   loop: "{{ container_images }}"
-  block:
-    - name: Pull image from Docker Hub
-      containers.podman.podman_image:
-        name: "{{ item.source }}"
-        state: present
 
-    - name: Tag image for ACR
-      containers.podman.podman_tag:
-        image: "{{ item.source }}"
-        target: "{{ acr_login_server }}/{{ item.target }}"
+- name: Tag images for ACR
+  containers.podman.podman_tag:
+    image: "{{ item.source }}"
+    target_names: "{{ acr_login_server }}/{{ item.target }}"
+  loop: "{{ container_images }}"
 
-    - name: Push image to ACR
-      containers.podman.podman_image:
-        name: "{{ acr_login_server }}/{{ item.target }}"
-        push: yes
-        username: "{{ acr_username }}"
-        password: "{{ acr_password }}"
+- name: Push images to ACR
+  containers.podman.podman_image:
+    name: "{{ acr_login_server }}/{{ item.target }}"
+    push: yes
+    username: "{{ acr_username }}"
+    password: "{{ acr_password }}"
+  loop: "{{ container_images }}"

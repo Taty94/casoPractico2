@@ -1,0 +1,83 @@
+---
+# Rol K8s - Despliegue en Kubernetes (Minikube)
+- name: Verify Kubernetes connection
+  command: kubectl cluster-info
+  register: cluster_info
+  changed_when: false
+
+- name: Create namespace
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ app_namespace }}"
+  when: cluster_info.rc == 0
+
+- name: Create PersistentVolumeClaim
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: redis-data
+        namespace: "{{ app_namespace }}"
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+
+- name: Deploy Redis backend
+  k8s:
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: redis
+        namespace: "{{ app_namespace }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: redis
+        template:
+          metadata:
+            labels:
+              app: redis
+          spec:
+            containers:
+            - name: redis
+              image: redis:alpine  # Usando imagen directamente de Docker Hub
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 250m
+                  memory: 256Mi
+              ports:
+                - containerPort: 6379
+              volumeMounts:
+                - name: redis-storage
+                  mountPath: /data
+            volumes:
+              - name: redis-storage
+                persistentVolumeClaim:
+                  claimName: redis-data
+
+- name: Create Redis Service
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: redis
+        namespace: "{{ app_namespace }}"
+      spec:
+        selector:
+          app: redis
+        ports:
+          - port: 6379
+            targetPort: 6379

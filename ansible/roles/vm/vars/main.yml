@@ -1,0 +1,6 @@
+#Varibales para el rol vm
+htpasswd_user: "tmontene"
+htpasswd_pass: "12345"
+nginx_config_path: "/etc/nginx/conf.d/default.conf"
+web_content_dir: "/data/webserver"
+htpasswd_path: "/data/webserver/.htpasswd"

@@ -1,0 +1,11 @@
+- hosts: localhost
+  gather_facts: no
+  vars_files:
+    - secrets.yml
+  tasks:
+    - name: Mostrar variables ACR
+      debug:
+        msg:
+          - "acr_username={{ acr_username }}"
+          - "acr_password={{ acr_password | default('NO PASSWORD') }}"
+          - "acr_login_server={{ acr_login_server }}"
