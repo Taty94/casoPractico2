@@ -14,17 +14,6 @@
     state: present
   become: yes
 
-# - name: Install required Ansible collections
-#   ansible.builtin.include_role:
-#     name: community.crypto
-
-- name: Create web content directory
-  file:
-    path: "{{ web_content_dir }}"
-    state: directory
-    mode: '0755'
-  become: yes
-
 - name: Create htpasswd file
   community.general.htpasswd:
     path: "{{ htpasswd_file }}"
@@ -33,70 +22,66 @@
     crypt_scheme: apr_md5_crypt
   become: yes
 
-- name: Create index.html file
-  ansible.builtin.copy:
-    dest: "{{ web_content_dir }}/index.html"
-    content: "<h1>¡Hola desde Podman + Nginx con HTTPS!</h1>"
-  become: yes
-
-# Create directory for certificates
-- name: Create cert directory
+- name: Create web content directory
   file:
-    path: /etc/nginx/certs
+    path: "{{ web_content_dir }}"
     state: directory
     mode: '0755'
   become: yes
 
+- name: Create index.html file
+  ansible.builtin.copy:
+    dest: "{{ web_content_dir }}/index.html"
+    content: "<h1>¡Hola desde Podman + Nginx con autenticacion!</h1>"
+  become: yes
+
+# Create certs directory
+# - name: Create certs directory inside web content directory
+#   file:
+#     path: "{{ web_content_dir }}/certs"
+#     state: directory
+#     mode: '0755'
+#   become: yes
+
 # Create self-signed certificate and private key
-- name: Create private key
-  community.crypto.openssl_privatekey:
-    path: /etc/nginx/certs/key.pem
-    size: 2048
-    type: RSA
-  become: yes
+# - name: Create private key
+#   community.crypto.openssl_privatekey:
+#     path: "{{ web_content_dir  }}/certs/key.pem"
+#     size: 2048
+#     type: RSA
+#   become: yes
 
-# Set dates for certificate validity
-- name: Set dates for certificate validity
-  ansible.builtin.set_fact:
-    cert_not_before: "{{ '%Y%m%d%H%M%SZ' | strftime(ansible_date_time.epoch | int) }}"
-    cert_not_after: "{{ '%Y%m%d%H%M%SZ' | strftime((ansible_date_time.epoch | int) + 365*24*3600) }}"
-  become: yes
+# # Set dates for certificate validity
+# - name: Set dates for certificate validity
+#   ansible.builtin.set_fact:
+#     cert_not_before: "{{ '%Y%m%d%H%M%SZ' | strftime(ansible_date_time.epoch | int) }}"
+#     cert_not_after: "{{ '%Y%m%d%H%M%SZ' | strftime((ansible_date_time.epoch | int) + 365*24*3600) }}"
+#   become: yes
 
-# Create self-signed certificate
-- name: Create self-signed certificate
-  community.crypto.x509_certificate:
-    path: /etc/nginx/certs/cert.pem
-    privatekey_path: /etc/nginx/certs/key.pem
-    provider: selfsigned
-    selfsigned_not_before: "{{ cert_not_before }}"
-    selfsigned_not_after: "{{ cert_not_after }}"
-    attributes:
-      commonName: "localhost"
-    state: present
-  become: yes
+# # # Create self-signed certificate
+# - name: Create self-signed certificate
+#   community.crypto.x509_certificate:
+#     path: "{{ web_content_dir }}/certs/cert.pem"
+#     privatekey_path: "{{ web_content_dir }}/certs/key.pem"
+#     provider: selfsigned
+#     selfsigned_not_before: "{{ cert_not_before }}"
+#     selfsigned_not_after: "{{ cert_not_after }}"
+#     attributes:
+#       commonName: "localhost"
+#     state: present
+#   become: yes
 
-- name: Copy cert and key to web content directory
-  copy:
-    src: "/etc/nginx/certs/{{ item }}"
-    dest: "{{ web_content_dir }}/{{ item }}"
-    owner: root
-    group: root
-    mode: "{{ '0600' if item == 'key.pem' else '0644' }}"
-  loop:
-    - cert.pem
-    - key.pem
-  become: yes
-
-- name: Create custom nginx.conf for HTTPS + auth
+- name: Create custom nginx.conf for auth
   copy:
     dest: "{{ web_content_dir }}/nginx.conf"
     content: |
       server {
-          listen 443 ssl;
+          listen 80;
           server_name localhost;
 
-          ssl_certificate     /etc/nginx/certs/cert.pem;
-          ssl_certificate_key /etc/nginx/certs/key.pem;
+          # ssl_certificate     /usr/share/nginx/html/cert.pem;
+          # ssl_certificate_key /usr/share/nginx/html/key.pem;
+
 
           auth_basic "Restricted Content";
           auth_basic_user_file /etc/nginx/.htpasswd;
@@ -116,18 +101,17 @@
   no_log: true # Evitar que las credenciales de ACR aparezcan en los logs de Ansible
 
 
-- name: Run nginx container with HTTPS and auth
+- name: Run nginx container with auth
   containers.podman.podman_container:
     name: webserver
     image: "{{ acr_login_server }}/nginx:latest"
     state: started
     ports:
-      - "443:443"
+      - "8080:80"
     volumes:
-      - /data/webserver:/usr/share/nginx/html
       - "{{ web_content_dir }}/index.html:/usr/share/nginx/html/index.html:ro"
-      - "{{ htpasswd_path }}:/etc/nginx/.htpasswd:ro"
-      - "{{ web_content_dir }}/cert.pem:/etc/nginx/certs/cert.pem:ro"
-      - "{{ web_content_dir }}/key.pem:/etc/nginx/certs/key.pem:ro"
+      - "{{ htpasswd_file }}:/etc/nginx/.htpasswd:ro"
+      # - "{{ web_content_dir }}/certs/cert.pem:/etc/nginx/certs/cert.pem:ro"
+      # - "{{ web_content_dir }}/certs/key.pem:/etc/nginx/certs/key.pem:ro"
       - "{{ web_content_dir }}/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
     restart_policy: always
