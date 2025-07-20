@@ -1,6 +1,7 @@
-#Varibales para el rol vm
+# Ansible role variables for VM setup
+htpasswd_file: "{{ web_content_dir }}/.htpasswd"
+# Usuario y contraseña para htpasswd
 htpasswd_user: "tmontene"
 htpasswd_pass: "12345"
-nginx_config_path: "/etc/nginx/conf.d/default.conf"
+# Ruta del directorio web
 web_content_dir: "/data/webserver"
-htpasswd_path: "/data/webserver/.htpasswd"

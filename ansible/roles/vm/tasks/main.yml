@@ -1,12 +1,4 @@
 ---
-# roles/vm/tasks/main.yml
-- import_tasks: setup.yml
-- import_tasks: auth.yml
-- import_tasks: webcontent.yml
-- import_tasks: container.yml
-
-
-# Rol VM - Configuración de la máquina virtual
 - name: Update apt cache
   apt:
     update_cache: yes
@@ -17,8 +9,103 @@
     name: 
       - podman
       - python3-pip
-      - apache2-utils
+      - apache2-utils # Para htpasswd
+      - python3-passlib
     state: present
+  become: yes
+
+# - name: Install required Ansible collections
+#   ansible.builtin.include_role:
+#     name: community.crypto
+
+- name: Create web content directory
+  file:
+    path: "{{ web_content_dir }}"
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Create htpasswd file
+  community.general.htpasswd:
+    path: "{{ htpasswd_file }}"
+    name: "{{ htpasswd_user }}"
+    password: "{{ htpasswd_pass }}"
+    crypt_scheme: apr_md5_crypt
+  become: yes
+
+- name: Create index.html file
+  ansible.builtin.copy:
+    dest: "{{ web_content_dir }}/index.html"
+    content: "<h1>¡Hola desde Podman + Nginx con HTTPS!</h1>"
+  become: yes
+
+# Create directory for certificates
+- name: Create cert directory
+  file:
+    path: /etc/nginx/certs
+    state: directory
+    mode: '0755'
+  become: yes
+
+# Create self-signed certificate and private key
+- name: Create private key
+  community.crypto.openssl_privatekey:
+    path: /etc/nginx/certs/key.pem
+    size: 2048
+    type: RSA
+  become: yes
+
+# Set dates for certificate validity
+- name: Set dates for certificate validity
+  ansible.builtin.set_fact:
+    cert_not_before: "{{ '%Y%m%d%H%M%SZ' | strftime(ansible_date_time.epoch | int) }}"
+    cert_not_after: "{{ '%Y%m%d%H%M%SZ' | strftime((ansible_date_time.epoch | int) + 365*24*3600) }}"
+  become: yes
+
+# Create self-signed certificate
+- name: Create self-signed certificate
+  community.crypto.x509_certificate:
+    path: /etc/nginx/certs/cert.pem
+    privatekey_path: /etc/nginx/certs/key.pem
+    provider: selfsigned
+    selfsigned_not_before: "{{ cert_not_before }}"
+    selfsigned_not_after: "{{ cert_not_after }}"
+    attributes:
+      commonName: "localhost"
+    state: present
+  become: yes
+
+- name: Copy cert and key to web content directory
+  copy:
+    src: "/etc/nginx/certs/{{ item }}"
+    dest: "{{ web_content_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "{{ '0600' if item == 'key.pem' else '0644' }}"
+  loop:
+    - cert.pem
+    - key.pem
+  become: yes
+
+- name: Create custom nginx.conf for HTTPS + auth
+  copy:
+    dest: "{{ web_content_dir }}/nginx.conf"
+    content: |
+      server {
+          listen 443 ssl;
+          server_name localhost;
+
+          ssl_certificate     /etc/nginx/certs/cert.pem;
+          ssl_certificate_key /etc/nginx/certs/key.pem;
+
+          auth_basic "Restricted Content";
+          auth_basic_user_file /etc/nginx/.htpasswd;
+
+          location / {
+              root /usr/share/nginx/html;
+              index index.html;
+          }
+      }
   become: yes
 
 - name: Login to ACR from VM
@@ -28,33 +115,19 @@
     registry: "{{ acr_login_server }}"
   no_log: true # Evitar que las credenciales de ACR aparezcan en los logs de Ansible
 
-- name: Create volume directory
-  file:
-    path: "{{ web_content_dir }}"
-    state: directory
-    mode: '0755'
-  become: yes
 
-- name: Create htpasswd file
-  community.general.htpasswd:
-    path: /data/webserver/.htpasswd
-    name: "{{ htpasswd_user }}"
-    password: "{{ htpasswd_pass }}"
-    crypt_scheme: md5
-
-- name: Create a sample index.html
-  become: yes
-  ansible.builtin.copy:
-    dest: /data/webserver/index.html
-    content: "<h1>¡Hola desde Podman + Nginx!</h1>"
-
-- name: Run nginx container
+- name: Run nginx container with HTTPS and auth
   containers.podman.podman_container:
     name: webserver
     image: "{{ acr_login_server }}/nginx:latest"
     state: started
     ports:
-      - "8080:80"
+      - "443:443"
     volumes:
       - /data/webserver:/usr/share/nginx/html
+      - "{{ web_content_dir }}/index.html:/usr/share/nginx/html/index.html:ro"
+      - "{{ htpasswd_path }}:/etc/nginx/.htpasswd:ro"
+      - "{{ web_content_dir }}/cert.pem:/etc/nginx/certs/cert.pem:ro"
+      - "{{ web_content_dir }}/key.pem:/etc/nginx/certs/key.pem:ro"
+      - "{{ web_content_dir }}/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
     restart_policy: always
