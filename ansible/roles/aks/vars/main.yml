@@ -1,0 +1,4 @@
+---
+app_namespace: "unir-cp2"
+acr_pull_secret_name: "acr-secret"
+kubeconfig_path: "/tmp/kubeconfig_aks"

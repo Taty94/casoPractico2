@@ -22,6 +22,6 @@
   containers.podman.podman_image:
     name: "{{ acr_login_server }}/{{ item.target }}"
     push: yes
-    username: "{{ acr_username }}"
-    password: "{{ acr_password }}"
+    # username: "{{ acr_username }}"
+    # password: "{{ acr_password }}"
   loop: "{{ container_images }}"

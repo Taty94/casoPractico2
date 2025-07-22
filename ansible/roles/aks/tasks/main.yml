@@ -1,7 +1,20 @@
 ---
+# - name: Write kubeconfig Terraform's output 
+#   copy:
+#     content: "{{ aks_kube_config }}"
+#     dest: "{{kubeconfig_path}}"
+#     mode: '0600'
+
+- name: Ensure Kubernetes Python client is installed
+  ansible.builtin.apt:
+    name: python3-kubernetes
+    state: present
+  become: yes
+
 # Rol AKS - Despliegue en Kubernetes
 - name: Create namespace
   k8s:
+    # kubeconfig: "{{kubeconfig_path}}"
     definition:
       apiVersion: v1
       kind: Namespace
@@ -10,18 +23,20 @@
 
 - name: Create secret for ACR
   k8s:
+    # kubeconfig: "{{kubeconfig_path}}"
     definition:
       apiVersion: v1
       kind: Secret
       metadata:
-        name: acr-secret
+        name: "{{ acr_pull_secret_name }}"
         namespace: "{{ app_namespace }}"
       type: kubernetes.io/dockerconfigjson
       data:
-        .dockerconfigjson: "{{ acr_auth | b64encode }}"
+        .dockerconfigjson: "{{ acr_full_config_json | b64encode }}"
 
 - name: Create PersistentVolumeClaim
   k8s:
+    # kubeconfig: "{{kubeconfig_path}}"
     definition:
       apiVersion: v1
       kind: PersistentVolumeClaim
@@ -37,6 +52,7 @@
 
 - name: Deploy Redis backend
   k8s:
+    # kubeconfig: "{{kubeconfig_path}}"
     definition:
       apiVersion: apps/v1
       kind: Deployment
@@ -54,7 +70,7 @@
               app: redis
           spec:
             imagePullSecrets:
-            - name: acr-secret  # Referencia al secret para pull de imágenes
+            - name: "{{ acr_pull_secret_name }}"
             containers:
             - name: redis
               image: "{{ acr_login_server }}/redis:alpine"
@@ -77,6 +93,7 @@
 
 - name: Create Redis Service
   k8s:
+    # kubeconfig: "{{kubeconfig_path}}"
     definition:
       apiVersion: v1
       kind: Service
@@ -89,3 +106,63 @@
         ports:
           - port: 6379
             targetPort: 6379
+        type: ClusterIP
+
+- name: Deploy Vote App backend
+  k8s:
+    # kubeconfig: "{{kubeconfig_path}}"
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: azure-vote-front
+        namespace: "{{ app_namespace }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: azure-vote-front
+        template:
+          metadata:
+            labels:
+              app: azure-vote-front
+          spec:
+            imagePullSecrets:
+            - name: "{{ acr_pull_secret_name }}"
+            containers:
+            - name: azure-vote-front
+              image: "{{ acr_login_server }}/azure-vote-front:latest"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 250m
+                  memory: 256Mi
+              ports:
+                - containerPort: 80
+              env:  # <--- ¡AQUÍ ES DONDE DEBES AGREGAR LA SECCIÓN 'env'
+                - name: REDIS
+                  value: "redis"
+
+- name: Create Vote App Service
+  k8s:
+    # kubeconfig: "{{kubeconfig_path}}"
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: azure-vote-front
+        namespace: "{{ app_namespace }}"
+      spec:
+        type: LoadBalancer
+        ports:
+          - port: 80
+            targetPort: 80
+        selector:
+          app: azure-vote-front
+
+# - name: Delete tmp kubeconfig
+#   file:
+#     path: "{{kubeconfig_path}}"
+#     state: absent

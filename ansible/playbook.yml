@@ -1,12 +1,12 @@
 ---
-# - name: Setup ACR and images
-#   hosts: localhost
-#   vars_files:
-#     - secrets.yml
-#   tasks:
-#     - name: Pull, build, tag and push images to ACR
-#       include_role:
-#         name: acr
+- name: Setup ACR and images
+  hosts: localhost
+  vars_files:
+    - secrets.yml   
+  tasks:
+    - name: Pull, build, tag and push images to ACR
+      include_role:
+        name: acr
 
 - name: Setup Webserver
   hosts: vm
@@ -17,11 +17,11 @@
       include_role:
         name: vm
 
-# - name: Setup AKS
-#   hosts: localhost
-#   vars_files:
-#     - secrets.yml
-#   tasks:
-#     - name: Deploy app to AKS
-#       include_role:
-#         name: aks
+- name: Setup AKS
+  hosts: localhost
+  vars_files:
+    - secrets.yml
+  tasks:
+    - name: Deploy app to AKS
+      include_role:
+        name: aks
