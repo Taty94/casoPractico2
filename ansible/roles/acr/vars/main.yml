@@ -3,12 +3,12 @@
 container_images:
   - name: "nginx"
     source: "nginx:latest"
-    target: "nginx:latest"
+    target: "nginx:casopractico2"
   
   - name: "redis"
     source: "redis:alpine"
-    target: "redis:alpine"
+    target: "redis:casopractico2"
   
   - name: "azure-vote-front"
     source: "suhuruli/azure-vote-front:latest"
-    target: "azure-vote-front:latest"
+    target: "azure-vote-front:casopractico2"

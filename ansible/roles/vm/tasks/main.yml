@@ -65,7 +65,7 @@
 - name: Run nginx container with auth
   containers.podman.podman_container:
     name: webserver
-    image: "{{ acr_login_server }}/nginx:latest"
+    image: "{{ acr_login_server }}/nginx:casopractico2"
     state: started
     ports:
       - "8080:80"

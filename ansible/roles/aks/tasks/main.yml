@@ -73,7 +73,7 @@
             - name: "{{ acr_pull_secret_name }}"
             containers:
             - name: redis
-              image: "{{ acr_login_server }}/redis:alpine"
+              image: "{{ acr_login_server }}/redis:casopractico2"
               resources:
                 requests:
                   cpu: 100m
@@ -131,7 +131,7 @@
             - name: "{{ acr_pull_secret_name }}"
             containers:
             - name: azure-vote-front
-              image: "{{ acr_login_server }}/azure-vote-front:latest"
+              image: "{{ acr_login_server }}/azure-vote-front:casopractico2"
               resources:
                 requests:
                   cpu: 100m
